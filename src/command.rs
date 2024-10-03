@@ -268,6 +268,7 @@ Commands:
     task add <text>                       Add a new task with the provided text.
     task add -s <number> <text>           Add a new sub-task under the task specified by <number>.
     task remove <number>                  Remove the task specified by <number>.
+    task remove -r <number>               Recursively remove the task specified by <number> and all its sub-tasks.
     task mark <number>                    Mark the task specified by <number> as completed.
     task clear                            Remove all tasks.
     task purge                            Remove all completed tasks from the list.
@@ -280,6 +281,7 @@ Examples:
     task add "Buy groceries"              Adds a new task with the text "Buy groceries".
     task add -s 1 "Buy vegetables"        Adds a sub-task under task 1 with the text "Buy vegetables".
     task remove 3                         Removes the task with ID 3.
+    task remove -r 3                      Recursively removes the task with ID 3 and all related sub-tasks.
     task mark 2                           Marks the task with ID 2 as completed.
     task clear                            Permanently remove all tasks.
     task purge                            Permanently removes all completed tasks from the list."#;

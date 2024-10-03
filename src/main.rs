@@ -6,6 +6,7 @@ mod command;
 use command::Command;
 
 mod error;
+use error::CommandError;
 
 fn handle_error(msg: &str, exit_code: i32) -> () {
     eprintln!("Error, {}", msg);
@@ -62,7 +63,7 @@ fn main() {
         "clear" => command.clear(),
         "-h" | "--help" | "help" => Command::help(),
         "-v" | "--version" => Command::version(),
-        _ => panic!("invalid args"),
+        _ => Err(CommandError::MissingArgument("invalid command".to_string())),
     };
 
 
