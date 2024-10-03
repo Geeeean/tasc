@@ -2,6 +2,17 @@
 
 TASC is a command-line application for task administration and scheduling. It allows you to easily create, manage, organize, and complete tasks using simple CLI commands.
 
+## TODO
+
+- Add error handling for out-of-bounds task numbers in commands that require a task number.
+- Add error handling for executing a normal command instead of a recursive command in situations where it is required.
+- Add a recursive option for the `mark` command.
+- Implement functionality so that when sub-tasks of a task are marked as completed, the parent task is also marked as completed automatically.
+
+## Contributing
+
+I welcome contributions to TASC! If you'd like to contribute, please feel free to submit a pull request. Whether you want to report a bug, suggest an enhancement, or improve the documentation, your input is valuable.
+
 ## Features
 
 - **Add tasks**: Create new tasks or sub-tasks with straightforward syntax.
