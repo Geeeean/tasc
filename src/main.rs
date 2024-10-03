@@ -173,7 +173,7 @@ fn add(file: File, file_path: &Path, tmp_file_path: &Path,  args: Vec<String>) -
     }
 
     if !sub_task {
-        writeln!(tmp_file, "o ─ {}", args[2..].join(" "))?;
+        writeln!(tmp_file, "o 1 {}", args[2..].join(" "))?;
     }
 
     drop(file);
