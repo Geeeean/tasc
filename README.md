@@ -30,6 +30,7 @@ TASC requires [Rust](https://www.rust-lang.org/) to build the binary. To install
     ```
 
 4. Ensure that your system has the `$HOME` environment variable set, as it is required for TASC to function properly.
+*Basically $HOME is set for linux and macos systems, it will soon support every operating system.*
 
 ## Usage
 
