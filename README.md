@@ -26,7 +26,7 @@ TASC requires [Rust](https://www.rust-lang.org/) to build the binary. To install
 
 1. Clone the repository to your local machine:
     ```bash
-    git clone https://github.com/yourusername/tasc.git
+    git clone https://github.com/Geeeean/tasc.git
     cd tasc
     ```
 
