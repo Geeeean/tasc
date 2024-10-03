@@ -40,6 +40,35 @@ fn list(file: File) -> Result<(), io::Error> {
     Ok(())
 }
 
+fn clean(file: File, file_path: &Path, tmp_file_path: &Path) -> Result<(), io::Error> {
+    let mut tmp_file = File::create(tmp_file_path)?;
+    let reader = BufReader::new(&file);
+
+    for line in reader.lines() {
+        match line {
+            Ok(l) => {
+                let marked = match l.chars().next() {
+                    Some(x) => x == 'x',
+                    None => return Err(io::Error::new(io::ErrorKind::InvalidData, "malformed line")),
+                };
+
+                if !marked {
+                    writeln!(tmp_file, "{}", l)?;
+                }
+            },
+            Err(r) => return Err(r),
+        }
+    }
+
+    drop(file);
+    drop(tmp_file);
+
+    fs::rename(tmp_file_path, file_path)?;
+
+    Ok(())
+}
+
+
 fn add(file: File, file_path: &Path, tmp_file_path: &Path,  args: Vec<String>) -> Result<(), io::Error> {
     let mut tmp_file = File::create(tmp_file_path)?;
     let reader = BufReader::new(&file);
@@ -135,8 +164,8 @@ fn main() {
         "list" => list(file),
         "mark" => Ok(()),
         "add" => add(file, path, tmp_path, args),
+        "clean" => clean(file, path, tmp_path),
         "remove" => Ok(()),
-        "clean" => Ok(()),
         _ => panic!("invalid args"),
     };
 
