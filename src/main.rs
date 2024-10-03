@@ -40,7 +40,7 @@ fn list(file: File) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn clean(file: File, file_path: &Path, tmp_file_path: &Path) -> Result<(), io::Error> {
+fn purge(file: File, file_path: &Path, tmp_file_path: &Path) -> Result<(), io::Error> {
     let mut tmp_file = File::create(tmp_file_path)?;
     let reader = BufReader::new(&file);
 
@@ -67,7 +67,6 @@ fn clean(file: File, file_path: &Path, tmp_file_path: &Path) -> Result<(), io::E
 
     Ok(())
 }
-
 
 fn add(file: File, file_path: &Path, tmp_file_path: &Path,  args: Vec<String>) -> Result<(), io::Error> {
     let mut tmp_file = File::create(tmp_file_path)?;
@@ -121,6 +120,44 @@ fn add(file: File, file_path: &Path, tmp_file_path: &Path,  args: Vec<String>) -
     Ok(())
 }
 
+fn mark(file: File, file_path: &Path, tmp_file_path: &Path, args: Vec<String>) -> Result<(), io::Error> {
+    let mut tmp_file = File::create(tmp_file_path)?;
+    let reader = BufReader::new(&file);
+
+    let line_number = match args.get(2) {
+        Some(x) => x,
+        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args")),
+    };
+
+    let line_number = match line_number.parse::<usize>() {
+        Ok(num) => num,
+        Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format")),
+    };
+
+    for (i, line) in reader.lines().enumerate() {
+        match line {
+            Ok(l) => {
+                if i+1 == line_number {
+                    let slice: Vec<&str> = l.split(' ').collect();
+                    let remaining = slice[1..].join(" ");
+                    writeln!(tmp_file, "x {}", remaining)?;
+                } else {
+                    writeln!(tmp_file, "{}", l)?;
+                }
+            },
+            Err(r) => return Err(r),
+        }
+    }
+
+    drop(file);
+    drop(tmp_file);
+
+    fs::rename(tmp_file_path, file_path)?;
+
+    Ok(())
+}
+
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -162,9 +199,9 @@ fn main() {
 
     let result = match cmd {
         "list" => list(file),
-        "mark" => Ok(()),
         "add" => add(file, path, tmp_path, args),
-        "clean" => clean(file, path, tmp_path),
+        "mark" => mark(file, path, tmp_path, args),
+        "purge" => purge(file, path, tmp_path),
         "remove" => Ok(()),
         _ => panic!("invalid args"),
     };
