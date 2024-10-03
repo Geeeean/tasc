@@ -35,8 +35,15 @@ impl Command {
             Err(e) => return Err(CommandError::IoError(e)),
         };
 
+        let mut completed: usize = 0;
+
         let lines: Result<Vec<(String, usize)>, CommandError> = lines.into_iter().map(|line| {
             let chunks: Vec<&str> = line.split(' ').collect();
+
+            if *chunks.get(0)
+                .ok_or(CommandError::MalformedLine("expected mark sign".to_string()))? == "x" {
+                completed += 1;
+            }
 
             let line_depth = chunks.get(1)
                 .ok_or(CommandError::MalformedLine("expected task depth".to_string()))?;
@@ -49,6 +56,8 @@ impl Command {
 
         let lines = lines?;
 
+        println!("Completed tasks {}/{}", completed, lines.len());
+
         for (i, line) in lines.iter().enumerate() {
             let prev_depth = if i != 0 {
                 match lines.get(i-1) {
@@ -56,6 +65,8 @@ impl Command {
                     None => 0,
                 }
             } else {
+                println!();
+
                 0
             };
 
