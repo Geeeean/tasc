@@ -38,7 +38,10 @@ fn format_line(line: &(String, usize), prev_depth: usize, next_depth: usize) -> 
 
     formatted.push(' ');
 
-    formatted.push_str(&chunks[2..].join(" "));
+    match marked {
+        true => formatted.push_str(&format!("\x1B[9m{}\x1B[0m", &chunks[2..].join(" "))),
+        false => formatted.push_str(&chunks[2..].join(" ")),
+    }
 
     Some(formatted)
 }
@@ -59,12 +62,12 @@ fn list(file: File) -> Result<(), io::Error> {
 
         let line_depth = match chunks.get(1) {
             Some(&x) => x.parse::<usize>(),
-            None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format")),
+            None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format.")),
         };
 
         let line_depth = match line_depth {
             Ok(num) => num,
-            Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format")),
+            Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format.")),
         };
 
         Ok((line, line_depth))
@@ -92,7 +95,7 @@ fn list(file: File) -> Result<(), io::Error> {
 
         match format_line(line, prev_depth, next_depth) {
             Some(str) => println!("{:0>2} {}", i+1, str),
-            None => return Err(io::Error::new(io::ErrorKind::InvalidData, "malformed line")),
+            None => return Err(io::Error::new(io::ErrorKind::InvalidData, "malformed line.")),
         };
     }
 
@@ -108,7 +111,7 @@ fn purge(file: File, file_path: &Path, tmp_file_path: &Path) -> Result<(), io::E
             Ok(l) => {
                 let marked = match l.chars().next() {
                     Some(x) => x == 'x',
-                    None => return Err(io::Error::new(io::ErrorKind::InvalidData, "malformed line")),
+                    None => return Err(io::Error::new(io::ErrorKind::InvalidData, "malformed line.")),
                 };
 
                 if !marked {
@@ -133,19 +136,19 @@ fn add(file: File, file_path: &Path, tmp_file_path: &Path,  args: Vec<String>) -
 
     let sub_task = match args.get(2) {
         Some(x) => x == "-s",
-        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args")),
+        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args.")),
     };
 
     let mut sub_task_parent: usize = 0;
     if sub_task {
         let parent_string = match args.get(3) {
             Some(x) => x,
-            None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args")),
+            None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args.")),
         };
 
         sub_task_parent = match parent_string.parse::<usize>() {
             Ok(num) => num,
-            Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format")),
+            Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format.")),
         }
     }
 
@@ -157,12 +160,12 @@ fn add(file: File, file_path: &Path, tmp_file_path: &Path,  args: Vec<String>) -
                     let chunks: Vec<&str> = l.split(' ').collect();
                     let line_depth = match chunks.get(1) {
                         Some(&x) => x.parse::<usize>(),
-                        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format")),
+                        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format.")),
                     };
 
                     let line_depth = match line_depth {
                         Ok(num) => num,
-                        Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format")),
+                        Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format.")),
                     };
 
                     writeln!(tmp_file, "o {} {}", line_depth+1, args[4..].join(" "))?;
@@ -190,12 +193,12 @@ fn mark(file: File, file_path: &Path, tmp_file_path: &Path, args: Vec<String>) -
 
     let line_number = match args.get(2) {
         Some(x) => x,
-        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args")),
+        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args.")),
     };
 
     let line_number = match line_number.parse::<usize>() {
         Ok(num) => num,
-        Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format")),
+        Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format.")),
     };
 
     for (i, line) in reader.lines().enumerate() {
@@ -238,12 +241,12 @@ fn remove(file: File, file_path: &Path, tmp_file_path: &Path, args: Vec<String>)
 
     let line_number = match args.get(2) {
         Some(x) => x,
-        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args")),
+        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid args.")),
     };
 
     let line_number = match line_number.parse::<usize>() {
         Ok(num) => num,
-        Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format")),
+        Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid number format.")),
     };
 
     for (i, line) in reader.lines().enumerate() {
@@ -265,29 +268,70 @@ fn remove(file: File, file_path: &Path, tmp_file_path: &Path, args: Vec<String>)
     Ok(())
 }
 
+fn help() -> () {
+    let help_message = r#"TASC - Task Administration and Scheduling CLI
+
+Usage:
+    task <command> [options]
+
+Commands:
+    task add <text>                       Add a new task with the provided text.
+    task add -s <number> <text>           Add a new sub-task under the task specified by <number>.
+    task remove <number>                  Remove the task specified by <number>.
+    task mark <number>                    Mark the task specified by <number> as completed.
+    task clear                            Remove all tasks.
+    task purge                            Remove all completed tasks from the list.
+
+Options:
+    -h, --help                            Show this help message and exit.
+    -v, --version                         Show the current version of TASC.
+
+Examples:
+    task add "Buy groceries"              Adds a new task with the text "Buy groceries".
+    task add -s 1 "Buy vegetables"        Adds a sub-task under task 1 with the text "Buy vegetables".
+    task remove 3                         Removes the task with ID 3.
+    task mark 2                           Marks the task with ID 2 as completed.
+    task clear                            Permanently remove all tasks.
+    task purge                            Permanently removes all completed tasks from the list."#;
+
+    println!("{}", help_message)
+}
+
+fn version() -> () {
+    let package_name = env!("CARGO_PKG_NAME");
+    let package_version = env!("CARGO_PKG_VERSION");
+
+    println!("{} version {}", package_name, package_version);
+}
+
+fn handle_error(msg: &str, exit_code: i32) -> () {
+    eprintln!("Error: {}", msg);
+    std::process::exit(exit_code);
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     let cmd = match args.get(1) {
         Some(x) => x.as_str(),
-        None => panic!("no args provided"),
+        None => return handle_error("invalid command. Use '--help' to see the list of available commands.", 1),
     };
 
     let home_path = "HOME";
 
     let path = match env::var(home_path) {
         Ok(val) => val + "/.tasc/data.tasc" ,
-        Err(e) => panic!("{}", e),
+        Err(_) => return handle_error("invalid $HOME env var.", 2),
     };
     let path = Path::new(&path);
 
     let parent_path = match path.parent() {
         Some(parent) => parent,
-        None => panic!("invalid parent path")
+        None => return handle_error("invalid parent path ($HOME/.tasc).", 3),
     };
 
     if !parent_path.exists() && fs::create_dir(parent_path).is_err() {
-        panic!("error on creating dir: {}", parent_path.to_str().unwrap());
+        handle_error(&format!("creating dir: {}", parent_path.to_str().unwrap()), 4);
     }
 
     let tmp_path = parent_path.join("tmp");
@@ -301,22 +345,24 @@ fn main() {
 
     let file = match file {
         Ok(f) => f,
-        Err(r) => panic!("{}", r),
+        Err(r) => return handle_error(&format!("unable to open file {}.",r), 5),
     };
 
     let result = match cmd {
-        "list" => list(file),
+        "l" | "list" => list(file),
         "add" => add(file, path, tmp_path, args),
         "mark" => mark(file, path, tmp_path, args),
-        "remove" => remove(file, path, tmp_path, args),
+        "remove" | "rm" => remove(file, path, tmp_path, args),
         "purge" => purge(file, path, tmp_path),
         "clear" => clear(file, path, tmp_path),
+        "-h" | "--help" | "help" => Ok(help()),
+        "-v" | "--version" => Ok(version()),
         _ => panic!("invalid args"),
     };
 
 
     match result {
         Ok(_) => (),
-        Err(r) => panic!("{}", r),
+        Err(e) => handle_error(&e.to_string(), 6),
     }
 }
