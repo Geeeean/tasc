@@ -157,6 +157,16 @@ fn mark(file: File, file_path: &Path, tmp_file_path: &Path, args: Vec<String>) -
     Ok(())
 }
 
+fn clear(file: File, file_path: &Path, tmp_file_path: &Path) -> Result<(), io::Error> {
+    let tmp_file = File::create(tmp_file_path)?;
+
+    drop(file);
+    drop(tmp_file);
+
+    fs::rename(tmp_file_path, file_path)?;
+
+    Ok(())
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -202,6 +212,7 @@ fn main() {
         "add" => add(file, path, tmp_path, args),
         "mark" => mark(file, path, tmp_path, args),
         "purge" => purge(file, path, tmp_path),
+        "clear" => clear(file, path, tmp_path),
         "remove" => Ok(()),
         _ => panic!("invalid args"),
     };
