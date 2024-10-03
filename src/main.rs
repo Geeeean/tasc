@@ -1,13 +1,15 @@
 use std::{env, fs};
-use std::path::Path;
+use std::path::PathBuf;
 use std::fs::File;
 
-mod commands;
-use commands::{list, add, mark, remove, clear, purge, help, version};
+mod command;
+use command::Command;
 
+mod error;
 
 fn handle_error(msg: &str, exit_code: i32) -> () {
-    eprintln!("Error: {}", msg);
+    eprintln!("Error, {}", msg);
+    eprintln!("Use '--help' to see the list of available commands.");
     std::process::exit(exit_code);
 }
 
@@ -16,7 +18,7 @@ fn main() {
 
     let cmd = match args.get(1) {
         Some(x) => x.as_str(),
-        None => return handle_error("invalid command. Use '--help' to see the list of available commands.", 1),
+        None => return handle_error("not enough args.", 1),
     };
 
     let home_path = "HOME";
@@ -25,7 +27,7 @@ fn main() {
         Ok(val) => val + "/.tasc/data.tasc" ,
         Err(_) => return handle_error("invalid $HOME env var.", 2),
     };
-    let path = Path::new(&path);
+    let path = PathBuf::from(&path);
 
     let parent_path = match path.parent() {
         Some(parent) => parent,
@@ -37,12 +39,11 @@ fn main() {
     }
 
     let tmp_path = parent_path.join("tmp");
-    let tmp_path = tmp_path.as_path();
 
     let file = if path.exists() {
-        File::open(path)
+        File::open(&path)
     } else {
-        File::create(path)
+        File::create(&path)
     };
 
     let file = match file {
@@ -50,15 +51,17 @@ fn main() {
         Err(r) => return handle_error(&format!("unable to open file {}.",r), 5),
     };
 
+    let command = Command::new(file, path, tmp_path, args.clone());
+
     let result = match cmd {
-        "l" | "list" => list(file),
-        "add" => add(file, path, tmp_path, args),
-        "mark" => mark(file, path, tmp_path, args),
-        "remove" | "rm" => remove(file, path, tmp_path, args),
-        "purge" => purge(file, path, tmp_path),
-        "clear" => clear(file, path, tmp_path),
-        "-h" | "--help" | "help" => Ok(help()),
-        "-v" | "--version" => Ok(version()),
+        "l" | "list" => command.list(),
+        "add" => command.add(),
+        "mark" => command.mark(),
+        "remove" | "rm" => command.remove(),
+        "purge" => command.purge(),
+        "clear" => command.clear(),
+        "-h" | "--help" | "help" => Command::help(),
+        "-v" | "--version" => Command::version(),
         _ => panic!("invalid args"),
     };
 
