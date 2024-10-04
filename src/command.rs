@@ -91,17 +91,15 @@ impl Command {
         let reader = BufReader::new(&self.file);
 
         for line in reader.lines() {
-            match line {
-                Ok(l) => {
-                    let marked = l.chars().next()
-                        .ok_or(CommandError::MalformedLine("".to_string()))?;
+            let line = line
+                .map_err(CommandError::IoError)?;
 
-                    if marked != 'x' {
-                        writeln!(tmp_file, "{}", l)
-                            .map_err(CommandError::IoError)?;
-                    }
-                },
-                Err(e) => return Err(CommandError::IoError(e)),
+            let marked = line.chars().next()
+                .ok_or(CommandError::MalformedLine("".to_string()))?;
+
+            if marked != 'x' {
+                writeln!(tmp_file, "{}", line)
+                    .map_err(CommandError::IoError)?;
             }
         }
 
@@ -130,24 +128,22 @@ impl Command {
         }
 
         for (i, line) in reader.lines().enumerate() {
-            match line {
-                Ok(l) => {
-                    writeln!(tmp_file, "{}", l)
-                        .map_err(CommandError::IoError)?;
+            let line = line
+                .map_err(CommandError::IoError)?;
 
-                    if i+1 == sub_task_parent {
-                        let chunks: Vec<&str> = l.split(' ').collect();
-                        let line_depth = chunks.get(1)
-                            .ok_or(CommandError::MalformedLine("expected line depth".to_string()))?;
+            writeln!(tmp_file, "{}", line)
+                .map_err(CommandError::IoError)?;
 
-                        let line_depth = line_depth.parse::<usize>()
-                            .map_err(|_| CommandError::InvalidNumberFormat("expected line depth as number".to_string()))?;
+            if i+1 == sub_task_parent {
+                let chunks: Vec<&str> = line.split(' ').collect();
+                let line_depth = chunks.get(1)
+                    .ok_or(CommandError::MalformedLine("expected line depth".to_string()))?;
 
-                        writeln!(tmp_file, "o {} {}", line_depth+1, self.args[4..].join(" "))
-                            .map_err(CommandError::IoError)?;
-                    }
-                },
-                Err(e) => return Err(CommandError::IoError(e)),
+                let line_depth = line_depth.parse::<usize>()
+                    .map_err(|_| CommandError::InvalidNumberFormat("expected line depth as number".to_string()))?;
+
+                writeln!(tmp_file, "o {} {}", line_depth+1, self.args[4..].join(" "))
+                    .map_err(CommandError::IoError)?;
             }
         }
 
@@ -175,19 +171,17 @@ impl Command {
             .map_err(|_| CommandError::InvalidNumberFormat("expected line number argument as number".to_string()))?;
 
         for (i, line) in reader.lines().enumerate() {
-            match line {
-                Ok(l) => {
-                    if i+1 == line_number {
-                        let slice: Vec<&str> = l.split(' ').collect();
-                        let remaining = slice[1..].join(" ");
-                        writeln!(tmp_file, "x {}", remaining)
-                            .map_err(CommandError::IoError)?;
-                    } else {
-                        writeln!(tmp_file, "{}", l)
-                            .map_err(CommandError::IoError)?;
-                    }
-                },
-                Err(e) => return Err(CommandError::IoError(e)),
+            let line = line
+                .map_err(CommandError::IoError)?;
+
+            if i+1 == line_number {
+                let slice: Vec<&str> = line.split(' ').collect();
+                let remaining = slice[1..].join(" ");
+                writeln!(tmp_file, "x {}", remaining)
+                    .map_err(CommandError::IoError)?;
+            } else {
+                writeln!(tmp_file, "{}", line)
+                    .map_err(CommandError::IoError)?;
             }
         }
 
@@ -230,36 +224,34 @@ impl Command {
         let mut parent_depth: usize = 0;
 
         for (i, line) in reader.lines().enumerate() {
-            match line {
-                Ok(l) => {
-                    if recursive && is_sub_task {
-                        let chunks: Vec<&str> = l.split(' ').collect();
-                        let cur_depth_str = chunks.get(1)
-                            .ok_or(CommandError::MalformedLine("expected task depth.".to_string()))?;
+            let line = line
+                .map_err(CommandError::IoError)?;
 
-                        let cur_depth = cur_depth_str.parse::<usize>()
-                            .map_err(|_| CommandError::MalformedLine("expected task depth as number".to_string()))?;
+            if recursive && is_sub_task {
+                let chunks: Vec<&str> = line.split(' ').collect();
+                let cur_depth_str = chunks.get(1)
+                    .ok_or(CommandError::MalformedLine("expected task depth.".to_string()))?;
 
-                        if cur_depth <= parent_depth {
-                            is_sub_task = false;
-                        }
-                    }
+                let cur_depth = cur_depth_str.parse::<usize>()
+                    .map_err(|_| CommandError::MalformedLine("expected task depth as number".to_string()))?;
 
-                    if i+1 != line_number && !is_sub_task {
-                        writeln!(tmp_file, "{}", l).map_err(CommandError::IoError)?;
-                    } else if recursive && !is_sub_task  {
-                        is_sub_task = true;
+                if cur_depth <= parent_depth {
+                    is_sub_task = false;
+                }
+            }
 
-                        let chunks: Vec<&str> = l.split(' ').collect();
+            if i+1 != line_number && !is_sub_task {
+                writeln!(tmp_file, "{}", line).map_err(CommandError::IoError)?;
+            } else if recursive && !is_sub_task  {
+                is_sub_task = true;
 
-                        let parent_depth_str = chunks.get(1)
-                            .ok_or(CommandError::MalformedLine("expected task depth.".to_string()))?;
+                let chunks: Vec<&str> = line.split(' ').collect();
 
-                        parent_depth = parent_depth_str.parse::<usize>()
-                            .map_err(|_| CommandError::MalformedLine("expected task depth as number".to_string()))?;
-                    }
-                },
-                Err(r) => return Err(CommandError::IoError(r)),
+                let parent_depth_str = chunks.get(1)
+                    .ok_or(CommandError::MalformedLine("expected task depth.".to_string()))?;
+
+                parent_depth = parent_depth_str.parse::<usize>()
+                    .map_err(|_| CommandError::MalformedLine("expected task depth as number".to_string()))?;
             }
         }
 
