@@ -38,10 +38,6 @@ TASC requires [Rust](https://www.rust-lang.org/) to build the binary. To install
     ```bash
     mv target/release/tasc /usr/local/bin/tasc
     ```
-
-4. Ensure that your system has the `$HOME` environment variable set, as it is required for TASC to function properly.
-*Basically $HOME is set for linux and macos systems, it will soon support every operating system.*
-
 ## Usage
 
 Here are the available commands for TASC:
