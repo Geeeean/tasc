@@ -22,6 +22,13 @@ fn main() {
         None => return handle_error("not enough args.", 1),
     };
 
+    #[cfg(target_os = "windows")]
+    let home_path = "USERPROFILE";
+
+    #[cfg(target_os = "linux")]
+    let home_path = "HOME";
+
+    #[cfg(target_os = "macos")]
     let home_path = "HOME";
 
     let path = match env::var(home_path) {
