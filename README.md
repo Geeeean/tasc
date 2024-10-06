@@ -6,7 +6,6 @@ TASC is a command-line application for task administration and scheduling. It al
 
 - Add error handling for out-of-bounds task numbers in commands that require a task number.
 - Add error handling for executing a normal command instead of a recursive command in situations where it is required.
-- Add a recursive option for the `mark` command.
 - Implement functionality so that when sub-tasks of a task are marked as completed, the parent task is also marked as completed automatically.
 
 ## Contributing
@@ -67,6 +66,9 @@ task <command> [options]
 
 - `task mark <number>`
   Mark the task specified by `<number>` as completed.
+
+- `task mark -r <number>`
+  Recursively mark the task specified by `<number>` and all its sub-tasks.
 
 - `task clear`
   Remove all tasks.

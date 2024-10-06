@@ -29,11 +29,7 @@ impl Command {
 
         //a bit of shadowing here 🙈
         let lines: io::Result<Vec<String>> = reader.lines().collect();
-
-        let lines = match lines {
-            Ok(res) => res,
-            Err(e) => return Err(CommandError::IoError(e)),
-        };
+        let lines = lines.map_err(CommandError::IoError)?;
 
         let mut completed: usize = 0;
 
@@ -45,11 +41,8 @@ impl Command {
                 completed += 1;
             }
 
-            let line_depth = chunks.get(1)
-                .ok_or(CommandError::MalformedLine("expected task depth".to_string()))?;
-
-            let line_depth = (*line_depth).parse::<usize>()
-                .map_err(|_| CommandError::MalformedLine("expected task depth as a number".to_string()))?;
+            let line_depth = get_line_depth(&line)
+                .ok_or(CommandError::MalformedLine("unable to get line depth".to_string()))?;
 
             Ok((line, line_depth))
         }).collect();
@@ -135,12 +128,8 @@ impl Command {
                 .map_err(CommandError::IoError)?;
 
             if i+1 == sub_task_parent {
-                let chunks: Vec<&str> = line.split(' ').collect();
-                let line_depth = chunks.get(1)
-                    .ok_or(CommandError::MalformedLine("expected line depth".to_string()))?;
-
-                let line_depth = line_depth.parse::<usize>()
-                    .map_err(|_| CommandError::InvalidNumberFormat("expected line depth as number".to_string()))?;
+                let line_depth = get_line_depth(&line)
+                    .ok_or(CommandError::MalformedLine("unable to get line depth".to_string()))?;
 
                 writeln!(tmp_file, "o {} {}", line_depth+1, self.args[4..].join(" "))
                     .map_err(CommandError::IoError)?;
@@ -164,26 +153,93 @@ impl Command {
 
         let reader = BufReader::new(&self.file);
 
-        let line_number = self.args.get(2)
-            .ok_or(CommandError::MissingArgument("expected line number argument".to_string()))?;
+        let mut arg = self.args.get(2)
+            .ok_or(CommandError::MissingArgument("expected mark argument".to_string()))?;
 
-        let line_number = line_number.parse::<usize>()
-            .map_err(|_| CommandError::InvalidNumberFormat("expected line number argument as number".to_string()))?;
+        let recursive = match arg.as_str() {
+            "-r" => true,
+            _ => false,
+        };
 
-        for (i, line) in reader.lines().enumerate() {
-            let line = line
-                .map_err(CommandError::IoError)?;
+        if recursive {
+            arg = self.args.get(3)
+                .ok_or(CommandError::MissingArgument("expected mark argument".to_string()))?;
+        }
 
-            if i+1 == line_number {
+        let line_number = arg.parse::<usize>()
+            .map_err(|_| CommandError::InvalidNumberFormat("expected mark argument as number".to_string()))?;
+
+        apply_recursive(
+            reader,
+            line_number,
+            recursive,
+            &mut tmp_file,
+            //active function: set a line as marked (x)
+            |line: String, file: &mut File| -> CommandResult {
                 let slice: Vec<&str> = line.split(' ').collect();
                 let remaining = slice[1..].join(" ");
-                writeln!(tmp_file, "x {}", remaining)
+                writeln!(file, "x {}", remaining)
                     .map_err(CommandError::IoError)?;
-            } else {
-                writeln!(tmp_file, "{}", line)
+
+                Ok(())
+            },
+            //passive function: just write the line
+            |line: String, file: &mut File| -> CommandResult {
+                writeln!(file, "{}", line)
                     .map_err(CommandError::IoError)?;
-            }
+
+                Ok(())
+            })?;
+
+        fs::rename(&self.tmp_file_path, &self.file_path)
+            .map_err(CommandError::IoError)?;
+
+        Ok(())
+    }
+
+    pub fn unmark(&self) -> CommandResult {
+        let mut tmp_file = File::create(&self.tmp_file_path)
+            .map_err(CommandError::IoError)?;
+
+        let reader = BufReader::new(&self.file);
+
+        let mut arg = self.args.get(2)
+            .ok_or(CommandError::MissingArgument("expected unmark argument".to_string()))?;
+
+        let recursive = match arg.as_str() {
+            "-r" => true,
+            _ => false,
+        };
+
+        if recursive {
+            arg = self.args.get(3)
+                .ok_or(CommandError::MissingArgument("expected unmark argument".to_string()))?;
         }
+
+        let line_number = arg.parse::<usize>()
+            .map_err(|_| CommandError::InvalidNumberFormat("expected unmark argument as number".to_string()))?;
+
+        apply_recursive(
+            reader,
+            line_number,
+            recursive,
+            &mut tmp_file,
+            //active function: set a line as marked (x)
+            |line: String, file: &mut File| -> CommandResult {
+                let slice: Vec<&str> = line.split(' ').collect();
+                let remaining = slice[1..].join(" ");
+                writeln!(file, "o {}", remaining)
+                    .map_err(CommandError::IoError)?;
+
+                Ok(())
+            },
+            //passive function: just write the line
+            |line: String, file: &mut File| -> CommandResult {
+                writeln!(file, "{}", line)
+                    .map_err(CommandError::IoError)?;
+
+                Ok(())
+            })?;
 
         fs::rename(&self.tmp_file_path, &self.file_path)
             .map_err(CommandError::IoError)?;
@@ -220,40 +276,23 @@ impl Command {
         let line_number = arg.parse::<usize>()
             .map_err(|_| CommandError::InvalidNumberFormat("expected remove argument as number".to_string()))?;
 
-        let mut is_sub_task = false;
-        let mut parent_depth: usize = 0;
+        apply_recursive(
+            reader,
+            line_number,
+            recursive,
+            &mut tmp_file,
 
-        for (i, line) in reader.lines().enumerate() {
-            let line = line
-                .map_err(CommandError::IoError)?;
+            //active function (remove command so just dont write anything
+            |_, _| -> CommandResult {
+                Ok(())
+            },
 
-            if recursive && is_sub_task {
-                let chunks: Vec<&str> = line.split(' ').collect();
-                let cur_depth_str = chunks.get(1)
-                    .ok_or(CommandError::MalformedLine("expected task depth.".to_string()))?;
+            //passive function just write the line
+            |line: String, file: &mut File| -> CommandResult {
+                writeln!(file, "{}", line).map_err(CommandError::IoError)?;
 
-                let cur_depth = cur_depth_str.parse::<usize>()
-                    .map_err(|_| CommandError::MalformedLine("expected task depth as number".to_string()))?;
-
-                if cur_depth <= parent_depth {
-                    is_sub_task = false;
-                }
-            }
-
-            if i+1 != line_number && !is_sub_task {
-                writeln!(tmp_file, "{}", line).map_err(CommandError::IoError)?;
-            } else if recursive && !is_sub_task  {
-                is_sub_task = true;
-
-                let chunks: Vec<&str> = line.split(' ').collect();
-
-                let parent_depth_str = chunks.get(1)
-                    .ok_or(CommandError::MalformedLine("expected task depth.".to_string()))?;
-
-                parent_depth = parent_depth_str.parse::<usize>()
-                    .map_err(|_| CommandError::MalformedLine("expected task depth as number".to_string()))?;
-            }
-        }
+                Ok(())
+            })?;
 
         fs::rename(&self.tmp_file_path, &self.file_path)
             .map_err(CommandError::IoError)?;
@@ -303,6 +342,7 @@ Examples:
         Ok(())
     }
 }
+
 fn format_line(line: &(String, usize), prev_depth: usize, next_depth: usize) -> Option<String> {
     let mut formatted = String::new();
 
@@ -344,4 +384,53 @@ fn format_line(line: &(String, usize), prev_depth: usize, next_depth: usize) -> 
     }
 
     Some(formatted)
+}
+
+fn apply_recursive(
+    reader: BufReader<&File>,
+    start_line: usize,
+    recursive: bool,
+    file: &mut File,
+    active: fn (line: String, file: &mut File) -> CommandResult,
+    passive: fn (line: String, file: &mut File) -> CommandResult
+) -> CommandResult {
+    let mut is_sub_task = false;
+    let mut parent_depth: usize = 0;
+
+    for (i, line) in reader.lines().enumerate() {
+        let line = line
+            .map_err(CommandError::IoError)?;
+
+        if recursive {
+            let cur_depth = get_line_depth(&line)
+                .ok_or(CommandError::MalformedLine("unable to get line depth".to_string()))?;
+
+            if is_sub_task {
+                if cur_depth <= parent_depth {
+                    is_sub_task = false;
+                }
+            } else if i+1 == start_line {
+                is_sub_task = true;
+                parent_depth = cur_depth;
+            }
+        }
+
+        if i+1 == start_line || is_sub_task {
+            active(line, file)?;
+        } else {
+            passive(line, file)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn get_line_depth(line: &String) -> Option<usize> {
+    let chunks: Vec<&str> = line.split(' ').collect();
+    let cur_depth_str = chunks.get(1)?;
+
+    match cur_depth_str.parse::<usize>() {
+        Ok(res) => Some(res),
+        Err(_) => None,
+    }
 }

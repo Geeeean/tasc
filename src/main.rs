@@ -58,6 +58,7 @@ fn main() {
         "l" | "list" => command.list(),
         "add" => command.add(),
         "mark" => command.mark(),
+        "unmark" => command.unmark(),
         "remove" | "rm" => command.remove(),
         "purge" => command.purge(),
         "clear" => command.clear(),
