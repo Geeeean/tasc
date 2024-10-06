@@ -343,7 +343,7 @@ Examples:
     }
 }
 
-fn format_line(line: &(String, usize), prev_depth: usize, next_depth: usize) -> Option<String> {
+fn format_line(line: &(String, usize), _prev_depth: usize, next_depth: usize) -> Option<String> {
     let mut formatted = String::new();
 
     let line_depth = line.1;

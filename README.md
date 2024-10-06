@@ -70,6 +70,12 @@ task <command> [options]
 - `task mark -r <number>`
   Recursively mark the task specified by `<number>` and all its sub-tasks.
 
+- `task unmark <number>`
+  Unmark the task specified by `<number>` as completed.
+
+- `task unmark -r <number>`
+  Recursively unmark the task specified by `<number>` and all its sub-tasks.
+
 - `task clear`
   Remove all tasks.
 
@@ -85,6 +91,8 @@ task <command> [options]
   Show the current version of TASC.
 
 ### Examples
+
+![Dimostrazione della CLI](https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHVvaG1kZHNmZmk4YTE1MGh2a3RtbnoxeW0zdmVsaXh6OW0zbGVzNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/lLjs7ttfk5oMTor54T/giphy.gif)
 
 - Add a new task:
     ```
