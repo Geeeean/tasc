@@ -43,39 +43,39 @@ TASC requires [Rust](https://www.rust-lang.org/) to build the binary. To install
 Here are the available commands for TASC:
 
 ```bash
-task <command> [options]
+tasc <command> [options]
 ```
 
 ### Commands
 
-- `task add <text>`
+- `tasc add <text>`
   Add a new task with the provided text.
 
-- `task add -s <number> <text>`
+- `tasc add -s <number> <text>`
   Add a new sub-task under the task specified by `<number>`.
 
-- `task remove <number>`
+- `tasc remove <number>`
   Remove the task specified by `<number>`.
 
-- `task remove -r <number>`
+- `tasc remove -r <number>`
   Recursively remove the task specified by `<number>` and all its sub-tasks.
 
-- `task mark <number>`
+- `tasc mark <number>`
   Mark the task specified by `<number>` as completed.
 
-- `task mark -r <number>`
+- `tasc mark -r <number>`
   Recursively mark the task specified by `<number>` and all its sub-tasks.
 
-- `task unmark <number>`
+- `tasc unmark <number>`
   Unmark the task specified by `<number>` as completed.
 
-- `task unmark -r <number>`
+- `tasc unmark -r <number>`
   Recursively unmark the task specified by `<number>` and all its sub-tasks.
 
-- `task clear`
+- `tasc clear`
   Remove all tasks.
 
-- `task purge`
+- `tasc purge`
   Remove all completed tasks from the list.
 
 ### Options
@@ -92,36 +92,36 @@ task <command> [options]
 
 - Add a new task:
     ```
-    task add "Buy groceries"
+    tasc add "Buy groceries"
     ```
 
 - Add a sub-task under task 1:
     ```
-    task add -s 1 "Buy vegetables"
+    tasc add -s 1 "Buy vegetables"
     ```
 
 - Remove task 3:
     ```
-    task remove 3
+    tasc remove 3
     ```
 
 - Recursively remove task 3 and all its sub-tasks:
     ```
-    task remove -r 3
+    tasc remove -r 3
     ```
 
 - Mark task 2 as completed:
     ```
-    task mark 2
+    tasc mark 2
     ```
 
 - Clear all tasks:
     ```
-    task clear
+    tasc clear
     ```
 
 - Purge all completed tasks:
     ```
-    task purge
+    tasc purge
     ```
 
